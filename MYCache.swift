@@ -10,47 +10,11 @@ class MYCache {
     
     static let sharedInstance = MYCache()
     
-//    private static var myCachePath = ""
-    
-    private var myPathCache = ""
-    private let charSet = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLKMNOPQRSTUVWXYZ1234567890".characters)
-
-    private init() {
-//        MYCache.myCachePath = NSTemporaryDirectory() + "MYCache/"
-        MYCache.sharedInstance.myPathCache = NSTemporaryDirectory() + "MYCache/"
-        self.cleanCache()
-    }
-
     func imageFromUrl(_ url: String) -> Data? {
         let data: Data? = try? Data(contentsOf: self.urlToFileName(url))
         return data
     }
     
-    private func urlToFileName (_ url: String) -> URL {
-        let array = url.components(separatedBy: "/")
-        let file = String(array.last!.characters.filter { charSet.contains($0) })
-        return URL.init(string:"file://" + MYCache.sharedInstance.myPathCache + file)!
-    }
-
-//
-//    init() {
-//        if (MYCache.myCachePath.isEmpty) {
-//            MYCache.myCachePath = NSTemporaryDirectory() + "MYCache/"
-//            self.cleanCache()
-//        }
-//    }
-    
-//    class func getImageFromCache(_ url: String) -> Data? {
-//        return MYCache().getImageFromCache(url)
-//    }
-//    class func saveData(_ data:Data, url:String) {
-//        
-//    }
-//    private func getImageFromCache(_ url: String) -> Data? {
-//        let data: Data? = try? Data(contentsOf: self.filename(url))
-//        return data
-//    }
-//    
     func saveImageWithData(_ data:Data, url:String) {
         do {
             try data.write(to: self.urlToFileName(url))
@@ -60,32 +24,36 @@ class MYCache {
         }
     }
     
-//    private func filename (_ url: String) -> URL {
-//        let array = url.components(separatedBy: "/")
-//        let file = MYCache.myCachePath + removeSpecialCharsFromString(array.last!)
-//        return URL.init(string:"file://" + file)!
-//    }
-//    
-//    private func removeSpecialCharsFromString(_ str: String) -> String {
-//        let chars = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLKMNOPQRSTUVWXYZ1234567890".characters)
-//        return String(str.characters.filter { chars.contains($0) })
-//    }
-//    
+    //MARK: private
+    
+    private let myPathCache = NSTemporaryDirectory() + "MYCache/"
+    private let charSet = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLKMNOPQRSTUVWXYZ1234567890".characters)
+    private let settingsKey = "settings.clearCache"
+    
+    private init() {
+        self.cleanCache()
+    }
+    
+    private func urlToFileName (_ url: String) -> URL {
+        let array = url.components(separatedBy: "/")
+        let file = String(array.last!.characters.filter { charSet.contains($0) })
+        return URL.init(string:"file://" + MYCache.sharedInstance.myPathCache + file)!
+    }
+    
     private func cleanCache () {
-        let path = MYCache.sharedInstance.myPathCache
-        if UserDefaults.standard.bool(forKey: "settings.clearCache") == true {
+        if UserDefaults.standard.bool(forKey: self.settingsKey) == true {
             do {
-                try FileManager.default.removeItem(atPath: path)
+                try FileManager.default.removeItem(atPath: self.myPathCache)
             }
             catch {
             }
         }
-        if (FileManager.default.fileExists(atPath: path)) {
+        if (FileManager.default.fileExists(atPath: self.myPathCache)) {
             self.removeOldFiles()
         }
         else {
             do {
-                try FileManager.default.createDirectory(atPath: path,
+                try FileManager.default.createDirectory(atPath: self.myPathCache,
                                                         withIntermediateDirectories: false,
                                                         attributes: nil)
             } catch let error as NSError {
@@ -95,12 +63,11 @@ class MYCache {
     }
     
     private func removeOldFiles() {
-        let path = MYCache.sharedInstance.myPathCache
         let fm = FileManager.default
         do {
-            let filePaths = try fm.contentsOfDirectory(atPath: path)
+            let filePaths = try fm.contentsOfDirectory(atPath: self.myPathCache)
             for filePath in filePaths {
-                let fileName = path + filePath
+                let fileName = self.myPathCache + filePath
                 let fileAttr = try fm.attributesOfItem(atPath: fileName)
                 let fileDate = fileAttr[FileAttributeKey.creationDate] as? Date
                 if self.daysBetweenDates(fileDate!, endDate: Date()) > 30 {
