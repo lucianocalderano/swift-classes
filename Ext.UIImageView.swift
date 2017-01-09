@@ -14,7 +14,8 @@ extension UIImageView {
             return
         }
         
-        if let imageData = MYCache.getImageFromCache(urlString) {
+//        if let imageData = MYCache.getImageFromCache(urlString) {
+        if let imageData = MYCache.sharedInstance.imageFromUrl(urlString) {
             self.image = UIImage(data: imageData)
             self.alpha = 1.0
             return
@@ -26,7 +27,7 @@ extension UIImageView {
             let task = session.dataTask(with: request, completionHandler: {
                 (data, response, error) -> Void in
                 if let imageData = data as Data? {
-                    MYCache.saveData(data!, url: (response?.url?.absoluteString)!)
+                    MYCache.sharedInstance.saveImageWithData(data!, url: (response?.url?.absoluteString)!)
                     DispatchQueue.main.async(execute: { () -> Void in
                         self.image = UIImage(data: imageData)
                         self.alpha = 1.0

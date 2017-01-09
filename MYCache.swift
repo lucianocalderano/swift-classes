@@ -1,6 +1,5 @@
 //
 //  MYCache.swift
-//  CsenCinofilia
 //
 //  Created by Luciano Calderano on 09/01/17.
 //  Copyright © 2017 Kanito. All rights reserved.
@@ -8,72 +7,100 @@
 
 import Foundation
 class MYCache {
-    private static var myCachePath = ""
     
-    init() {
-        if (MYCache.myCachePath.isEmpty) {
-            MYCache.myCachePath = NSTemporaryDirectory() + "MYCache/"
-            self.cleanCache()
-        }
-    }
+    static let sharedInstance = MYCache()
     
-    class func getImageFromCache(_ url: String) -> Data? {
-        return MYCache().getImageFromCache(url)
+//    private static var myCachePath = ""
+    
+    private var myPathCache = ""
+    private let charSet = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLKMNOPQRSTUVWXYZ1234567890".characters)
+
+    private init() {
+//        MYCache.myCachePath = NSTemporaryDirectory() + "MYCache/"
+        MYCache.sharedInstance.myPathCache = NSTemporaryDirectory() + "MYCache/"
+        self.cleanCache()
     }
-    class func saveData(_ data:Data, url:String) {
-        
-    }
-    private func getImageFromCache(_ url: String) -> Data? {
-        let data: Data? = try? Data(contentsOf: self.filename(url))
+
+    func imageFromUrl(_ url: String) -> Data? {
+        let data: Data? = try? Data(contentsOf: self.urlToFileName(url))
         return data
     }
     
-    private func saveData(_ data:Data, url:String) {
+    private func urlToFileName (_ url: String) -> URL {
+        let array = url.components(separatedBy: "/")
+        let file = String(array.last!.characters.filter { charSet.contains($0) })
+        return URL.init(string:"file://" + MYCache.sharedInstance.myPathCache + file)!
+    }
+
+//
+//    init() {
+//        if (MYCache.myCachePath.isEmpty) {
+//            MYCache.myCachePath = NSTemporaryDirectory() + "MYCache/"
+//            self.cleanCache()
+//        }
+//    }
+    
+//    class func getImageFromCache(_ url: String) -> Data? {
+//        return MYCache().getImageFromCache(url)
+//    }
+//    class func saveData(_ data:Data, url:String) {
+//        
+//    }
+//    private func getImageFromCache(_ url: String) -> Data? {
+//        let data: Data? = try? Data(contentsOf: self.filename(url))
+//        return data
+//    }
+//    
+    func saveImageWithData(_ data:Data, url:String) {
         do {
-            try data.write(to: self.filename(url))
+            try data.write(to: self.urlToFileName(url))
         }
         catch let error as NSError {
             print(error.localizedDescription)
         }
     }
     
-    private func filename (_ url: String) -> URL {
-        let array = url.components(separatedBy: "/")
-        let file = MYCache.myCachePath + removeSpecialCharsFromString(array.last!)
-        return URL.init(string:"file://" + file)!
-    }
-    
-    private func removeSpecialCharsFromString(_ str: String) -> String {
-        let chars = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLKMNOPQRSTUVWXYZ1234567890".characters)
-        return String(str.characters.filter { chars.contains($0) })
-    }
-    
+//    private func filename (_ url: String) -> URL {
+//        let array = url.components(separatedBy: "/")
+//        let file = MYCache.myCachePath + removeSpecialCharsFromString(array.last!)
+//        return URL.init(string:"file://" + file)!
+//    }
+//    
+//    private func removeSpecialCharsFromString(_ str: String) -> String {
+//        let chars = Set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLKMNOPQRSTUVWXYZ1234567890".characters)
+//        return String(str.characters.filter { chars.contains($0) })
+//    }
+//    
     private func cleanCache () {
+        let path = MYCache.sharedInstance.myPathCache
         if UserDefaults.standard.bool(forKey: "settings.clearCache") == true {
             do {
-                try FileManager.default.removeItem(atPath: MYCache.myCachePath)
+                try FileManager.default.removeItem(atPath: path)
             }
             catch {
             }
         }
-        if (FileManager.default.fileExists(atPath: MYCache.myCachePath)) {
-            self.cleanOldFiles()
+        if (FileManager.default.fileExists(atPath: path)) {
+            self.removeOldFiles()
         }
         else {
             do {
-                try FileManager.default.createDirectory(atPath: MYCache.myCachePath, withIntermediateDirectories: false, attributes: nil)
+                try FileManager.default.createDirectory(atPath: path,
+                                                        withIntermediateDirectories: false,
+                                                        attributes: nil)
             } catch let error as NSError {
                 NSLog("\(error.localizedDescription)")
             }
         }
     }
     
-    private func cleanOldFiles() {
+    private func removeOldFiles() {
+        let path = MYCache.sharedInstance.myPathCache
         let fm = FileManager.default
         do {
-            let filePaths = try fm.contentsOfDirectory(atPath: MYCache.myCachePath)
+            let filePaths = try fm.contentsOfDirectory(atPath: path)
             for filePath in filePaths {
-                let fileName = MYCache.myCachePath + filePath
+                let fileName = path + filePath
                 let fileAttr = try fm.attributesOfItem(atPath: fileName)
                 let fileDate = fileAttr[FileAttributeKey.creationDate] as? Date
                 if self.daysBetweenDates(fileDate!, endDate: Date()) > 30 {
